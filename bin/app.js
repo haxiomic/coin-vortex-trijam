@@ -5,8 +5,38 @@ class Coin extends three_Mesh {
 	constructor() {
 		let geom = new three_CylinderGeometry(undefined,undefined,0.1,40);
 		geom.applyQuaternion(new three_Quaternion().setFromAxisAngle(new three_Vector3(1,0,0),Math.PI * 0.5));
+		geom.translate(0,1.,0.);
 		geom.scale(0.05,0.05,0.05);
-		super(geom,new three_MeshNormalMaterial());
+		let coinMaterial = new three_MeshPhysicalMaterial();
+		ui_DevUI.patchFolder(ui_DevUI.internalAddMaterial(Main_devUI,coinMaterial,"coinMaterial"));
+		coinMaterial.visible = true;
+		coinMaterial.transparent = false;
+		coinMaterial.opacity = 1;
+		coinMaterial.colorWrite = true;
+		coinMaterial.depthWrite = true;
+		coinMaterial.depthTest = true;
+		coinMaterial.flatShading = false;
+		coinMaterial.roughness = 0.26917111838704116;
+		coinMaterial.metalness = 1;
+		coinMaterial.emissiveIntensity = 1;
+		coinMaterial.color.setHex(6041102);
+		coinMaterial.emissive.setHex(0);
+		coinMaterial.side = three_Side.FrontSide;
+		coinMaterial.envMapIntensity = 1;
+		coinMaterial.aoMapIntensity = 1;
+		coinMaterial.clearcoat = 0;
+		coinMaterial.clearcoatRoughness = 0;
+		coinMaterial.transmission = 0;
+		coinMaterial.ior = 1.3699810442874376;
+		coinMaterial.thickness = 0;
+		coinMaterial.attenuationColor.setHex(16777215);
+		coinMaterial.attenuationDistance = 0;
+		coinMaterial.sheen = 0;
+		coinMaterial.sheenRoughness = 1;
+		coinMaterial.sheenColor.setHex(0);
+		super(geom,coinMaterial);
+		this.vel2D = new Vec2Data(0.,0.);
+		this.pos2D = new Vec2Data(0.,0.);
 	}
 }
 Coin.__name__ = true;
@@ -51,11 +81,66 @@ class HxOverrides {
 		}
 		return s.substr(pos,len);
 	}
+	static remove(a,obj) {
+		let i = a.indexOf(obj);
+		if(i == -1) {
+			return false;
+		}
+		a.splice(i,1);
+		return true;
+	}
 	static now() {
 		return Date.now();
 	}
 }
 HxOverrides.__name__ = true;
+class animation_Animator {
+	constructor() {
+		this.postStepCallbacks = [];
+		this.preStepCallbacks = [];
+		this.t_s = 0.0;
+		this.springs = [];
+		this.temporarySprings = [];
+		this.temporaryTweens = [];
+	}
+	step(dt_s) {
+		this.t_s += dt_s;
+		let _g = 0;
+		let _g1 = this.preStepCallbacks;
+		while(_g < _g1.length) _g1[_g++](this.t_s,dt_s);
+		let _g2 = 0;
+		let _g3 = this.temporaryTweens;
+		while(_g2 < _g3.length) {
+			let tween = _g3[_g2];
+			++_g2;
+			if(!tween.isComplete()) {
+				tween.step(dt_s);
+			}
+			if(tween.isComplete()) {
+				HxOverrides.remove(this.temporaryTweens,tween);
+			}
+		}
+		let _g4 = 0;
+		let _g5 = this.temporarySprings;
+		while(_g4 < _g5.length) {
+			let spring = _g5[_g4];
+			++_g4;
+			if(!spring.isComplete()) {
+				spring.step(dt_s);
+			}
+			if(spring.isComplete()) {
+				HxOverrides.remove(this.temporarySprings,spring);
+			}
+		}
+		let _g6 = 0;
+		let _g7 = this.springs;
+		while(_g6 < _g7.length) _g7[_g6++].step(dt_s);
+		let _g8 = 0;
+		let _g9 = this.postStepCallbacks;
+		while(_g8 < _g9.length) _g9[_g8++](this.t_s,dt_s);
+	}
+}
+animation_Animator.__name__ = true;
 class event_ViewEventManager {
 	constructor(el) {
 		this.appActivated = false;
@@ -401,7 +486,6 @@ class event__$ViewEventManager_EventDispatcher {
 	}
 }
 event__$ViewEventManager_EventDispatcher.__name__ = true;
-Math.__name__ = true;
 class control_ArcBallControl {
 	constructor(options) {
 		this._drivingPointerId = null;
@@ -409,10 +493,8 @@ class control_ArcBallControl {
 		this._onDown_angleAroundXZ = 0;
 		this._onDown_angleAroundY = 0;
 		this.orientation = new Vec4Data(0,0,0,1);
-		this.position = new Vec3Data(0.,0.,0.);
 		this.target = new Vec3Data(0.,0.,0.);
 		this.radius = new animation_Spring(1.);
-		this.axialRotation = new animation_Spring(0.);
 		this.angleAroundXZ = new animation_Spring(0.);
 		this.angleAroundY = new animation_Spring(0.);
 		let a = control_ArcBallControl.defaults;
@@ -491,6 +573,7 @@ class control_ArcBallControl {
 	}
 }
 control_ArcBallControl.__name__ = true;
+Math.__name__ = true;
 class rendering_BackgroundEnvironment extends three_Mesh {
 	constructor(roughness) {
 		if(roughness == null) {
@@ -546,11 +629,109 @@ var three_Side = require("three");
 var three_Blending = require("three");
 var three_BufferGeometry = require("three").BufferGeometry;
 var three_BoxGeometry = require("three").BoxGeometry;
+var animation_SpringStyle = $hxEnums["animation.SpringStyle"] = { __ename__:true,__constructs__:null
+	,Critical: ($_=function(approxHalfLife_s) { return {_hx_index:0,approxHalfLife_s:approxHalfLife_s,__enum__:"animation.SpringStyle",toString:$estr}; },$_._hx_name="Critical",$_.__params__ = ["approxHalfLife_s"],$_)
+	,Custom: ($_=function(strength,damping) { return {_hx_index:1,strength:strength,damping:damping,__enum__:"animation.SpringStyle",toString:$estr}; },$_._hx_name="Custom",$_.__params__ = ["strength","damping"],$_)
+};
+animation_SpringStyle.__constructs__ = [animation_SpringStyle.Critical,animation_SpringStyle.Custom];
+class animation_Spring {
+	constructor(initialValue,target,style,velocity,onUpdate,onComplete) {
+		if(velocity == null) {
+			velocity = 0.0;
+		}
+		this.minEnergyThreshold = 1e-5;
+		if(style == null) {
+			style = animation_SpringStyle.Critical(0.5);
+		}
+		this.value = initialValue;
+		this.target = target == null ? initialValue : target;
+		switch(style._hx_index) {
+		case 0:
+			this.damping = 3.356694 / style.approxHalfLife_s;
+			this.strength = this.damping * this.damping / 4;
+			break;
+		case 1:
+			this.damping = style.damping;
+			this.strength = style.strength;
+			break;
+		}
+		this.velocity = velocity;
+		this.onUpdate = onUpdate;
+		this.onComplete = onComplete;
+	}
+	step(dt_s) {
+		let V0 = this.velocity;
+		let X0 = this.value - this.target;
+		if(X0 == 0 && V0 == 0 || dt_s == 0) {
+			return;
+		}
+		let k = this.strength;
+		let b = this.damping;
+		if(this.getTotalEnergy() < this.minEnergyThreshold) {
+			this.velocity = 0;
+			this.value = this.target;
+			if(this.onComplete != null) {
+				this.onComplete();
+			}
+		} else {
+			let critical = k * 4 - b * b;
+			if(critical > 0) {
+				let q = 0.5 * Math.sqrt(critical);
+				let B = (b * X0 * 0.5 + V0) / q;
+				let m = Math.exp(-b * 0.5 * dt_s);
+				let c = Math.cos(q * dt_s);
+				let s = Math.sin(q * dt_s);
+				this.velocity = m * ((B * q - 0.5 * X0 * b) * c + (-X0 * q - 0.5 * b * B) * s);
+				this.value = m * (X0 * c + B * s) + this.target;
+			} else if(critical < 0) {
+				let u = 0.5 * Math.sqrt(-critical);
+				let p = -0.5 * b + u;
+				let n = -0.5 * b - u;
+				let B = -(n * X0 - V0) / (2 * u);
+				let A = X0 - B;
+				let ep = Math.exp(p * dt_s);
+				let en = Math.exp(n * dt_s);
+				this.velocity = A * n * en + B * p * ep;
+				this.value = A * en + B * ep + this.target;
+			} else {
+				let w = Math.sqrt(k);
+				let B = V0 + w * X0;
+				let e = Math.exp(-w * dt_s);
+				this.velocity = (B - w * (X0 + B * dt_s)) * e;
+				this.value = (X0 + B * dt_s) * e + this.target;
+			}
+		}
+		if(this.onUpdate != null) {
+			this.onUpdate(this.value,this.velocity);
+		}
+	}
+	getTotalEnergy() {
+		let x = this.value - this.target;
+		return 0.5 * this.velocity * this.velocity + 0.5 * this.strength * x * x;
+	}
+	isComplete() {
+		if(this.velocity == 0) {
+			return this.value == this.target;
+		} else {
+			return false;
+		}
+	}
+	forceCompletion(v) {
+		if(v != null) {
+			this.target = v;
+		}
+		this.value = this.target;
+		this.velocity = 0;
+		this.step(0);
+	}
+}
+animation_Spring.__name__ = true;
 var three_PerspectiveCamera = require("three").PerspectiveCamera;
 var three_CylinderGeometry = require("three").CylinderGeometry;
 var three_Quaternion = require("three").Quaternion;
 var three_Vector3 = require("three").Vector3;
-var three_MeshNormalMaterial = require("three").MeshNormalMaterial;
+var three_MeshStandardMaterial = require("three").MeshStandardMaterial;
+var three_MeshPhysicalMaterial = require("three").MeshPhysicalMaterial;
 var ui_ExposedGUI = require("dat.gui").GUI;
 class ui_DevUI extends ui_ExposedGUI {
 	constructor(options) {
@@ -1070,9 +1251,6 @@ class ui_DevUI extends ui_ExposedGUI {
 	}
 }
 ui_DevUI.__name__ = true;
-var three_WebGLRenderer = require("three").WebGLRenderer;
-var three_TextureEncoding = require("three");
-var three_ToneMapping = require("three");
 class Std {
 	static string(s) {
 		return js_Boot.__string_rec(s,"");
@@ -1194,6 +1372,91 @@ class js_Boot {
 	}
 }
 js_Boot.__name__ = true;
+var three_MeshBasicMaterial = require("three").MeshBasicMaterial;
+class material_CustomPhysicalMaterial extends three_ShaderMaterial {
+	constructor(additionalUniforms,parameters) {
+		let tmp = Structure_extendAny(Three.ShaderLib.physical.uniforms,additionalUniforms != null ? additionalUniforms : { });
+		super(Structure_extendAny({ defines : { "STANDARD" : "", "PHYSICAL" : ""}, uniforms : tmp, vertexShader : Three.ShaderLib.physical.vertexShader, fragmentShader : Three.ShaderLib.physical.fragmentShader, fog : true},parameters != null ? parameters : { }));
+		this.flatShading = false;
+		this.color = new three_Color(16777215);
+		this.roughness = 1.0;
+		this.metalness = 0.0;
+		this.map = null;
+		this.lightMap = null;
+		this.lightMapIntensity = 1.0;
+		this.aoMap = null;
+		this.aoMapIntensity = 1.0;
+		this.emissive = new three_Color(0);
+		this.emissiveIntensity = 1.0;
+		this.emissiveMap = null;
+		this.bumpMap = null;
+		this.bumpScale = 1;
+		this.normalMap = null;
+		this.normalMapType = three_NormalMapTypes.TangentSpaceNormalMap;
+		this.normalScale = new three_Vector2(1,1);
+		this.displacementMap = null;
+		this.displacementScale = 1;
+		this.displacementBias = 0;
+		this.roughnessMap = null;
+		this.metalnessMap = null;
+		this.alphaMap = null;
+		this.envMap = null;
+		this.envMapIntensity = 1.0;
+		this.refractionRatio = 0.98;
+		this.wireframeLinecap = "round";
+		this.wireframeLinejoin = "round";
+		this.isMeshStandardMaterial = true;
+		if(this.clearcoat > 0 != false) {
+			this.version++;
+		}
+		this.clearcoat = 0.0;
+		this.clearcoatMap = null;
+		this.clearcoatRoughness = 0.0;
+		this.clearcoatRoughnessMap = null;
+		this.clearcoatNormalScale = new three_Vector2(1,1);
+		this.clearcoatNormalMap = null;
+		if(this.sheen > 0 != false) {
+			this.version++;
+		}
+		this.sheen = 0.0;
+		this.sheenColor = new three_Color(0);
+		this.sheenColorMap = null;
+		this.sheenRoughness = 1.0;
+		this.sheenRoughnessMap = null;
+		this.transparency = 0.0;
+		if(this.transmission > 0 != false) {
+			this.version++;
+		}
+		this.transmission = 0.;
+		this.ior = 1.5;
+		this.transmissionMap = null;
+		this.thickness = 0.01;
+		this.thicknessMap = null;
+		this.attenuationDistance = 0.0;
+		this.attenuationColor = new three_Color(1,1,1);
+		this.specularIntensity = 1.0;
+		this.specularColor = new three_Color(1,1,1);
+		this.specularIntensityMap = null;
+		this.specularColorMap = null;
+		this.isMeshPhysicalMaterial = true;
+		this.isInitialized = true;
+		if(parameters != null) {
+			this.setValues(parameters);
+		}
+	}
+	setValues(parameters) {
+		if(!this.isInitialized) {
+			let _g = 0;
+			let _g1 = Reflect.fields(parameters);
+			while(_g < _g1.length) this[_g1[_g++]] = null;
+		}
+		super.setValues(parameters);
+	}
+}
+material_CustomPhysicalMaterial.__name__ = true;
+var three_WebGLRenderer = require("three").WebGLRenderer;
+var three_TextureEncoding = require("three");
+var three_ToneMapping = require("three");
 var three_Scene = require("three").Scene;
 class environment_EnvironmentManager {
 	constructor(renderer,scene,path,onEnvironmentLoaded) {
@@ -1332,14 +1595,184 @@ class environment_EnvironmentManager {
 environment_EnvironmentManager.__name__ = true;
 var three_DirectionalLight = require("three").DirectionalLight;
 var three_AmbientLight = require("three").AmbientLight;
+class Vec2Data {
+	constructor(x,y) {
+		this.x = x;
+		this.y = y;
+	}
+}
+Vec2Data.__name__ = true;
 function Main_main() {
+	Main_G = 0.16767189384800965;
+	Main_drag = 0.0203;
+	Main_initialVelocity.x = 0;
+	Main_initialVelocity.y = 1.6794761330346373;
 	window.document.body.appendChild(Main_canvas);
 	Main_scene.add(Main_background);
 	Main_scene.add(new Vortex());
 	Main_scene.add(Main_coin);
+	let g = Main_devUI.addFolder("Setup");
+	g.open();
+	let o = { };
+	Object.defineProperty(o,"G",{ set : function(__value) {
+		Main_G = __value;
+	}, get : function() {
+		return Main_G;
+	}});
+	let c = g.add(o,"G").name("G");
+	let min = 0;
+	let max = 0.5;
+	if(min != null) {
+		c = c.min(min);
+	}
+	if(max != null) {
+		c = c.max(max);
+	}
+	ui_DevUI.patchController(c,function() {
+		return "G" + " = " + Main_G + ";";
+	}).name("G");
+	let o1 = { };
+	Object.defineProperty(o1,"drag",{ set : function(__value) {
+		Main_drag = __value;
+	}, get : function() {
+		return Main_drag;
+	}});
+	let c1 = g.add(o1,"drag").name("drag");
+	let min1 = 0.;
+	let max1 = 0.1;
+	if(min1 != null) {
+		c1 = c1.min(min1);
+	}
+	if(max1 != null) {
+		c1 = c1.max(max1);
+	}
+	ui_DevUI.patchController(c1,function() {
+		return "drag" + " = " + Main_drag + ";";
+	}).name("drag");
+	let o2 = { };
+	Object.defineProperty(o2,"x",{ set : function(__value) {
+		Main_initialVelocity.x = __value;
+	}, get : function() {
+		return Main_initialVelocity.x;
+	}});
+	let c2 = g.add(o2,"x").name("x");
+	let min2 = -2;
+	let max2 = 2;
+	if(min2 != null) {
+		c2 = c2.min(min2);
+	}
+	if(max2 != null) {
+		c2 = c2.max(max2);
+	}
+	ui_DevUI.patchController(c2,function() {
+		return "initialVelocity.x" + " = " + Main_initialVelocity.x + ";";
+	}).name("x");
+	let o3 = { };
+	Object.defineProperty(o3,"y",{ set : function(__value) {
+		Main_initialVelocity.y = __value;
+	}, get : function() {
+		return Main_initialVelocity.y;
+	}});
+	let c3 = g.add(o3,"y").name("y");
+	let min3 = -2;
+	let max3 = 2;
+	if(min3 != null) {
+		c3 = c3.min(min3);
+	}
+	if(max3 != null) {
+		c3 = c3.max(max3);
+	}
+	ui_DevUI.patchController(c3,function() {
+		return "initialVelocity.y" + " = " + Main_initialVelocity.y + ";";
+	}).name("y");
 	Main_scene.add(new three_AxesHelper());
 	Main_arcBallControl.target.y = 0.;
+	let _this = Main_eventManager;
+	let cb = function(e,onView) {
+		if(e.key == "r") {
+			Main_start();
+		} else {
+			$global.console.log("key " + e.key);
+		}
+	};
+	_this.eventHandler.onKeyUpCallbacks.push(cb);
+	let _gthis = _this;
 	Main_animationFrame(window.performance.now());
+	Main_start();
+}
+function Main_start() {
+	let this1 = Main_coin.pos2D;
+	this1.x = Math.abs(1 / (0 - Main_vortexDelta)) - 0.2;
+	this1.y = 0;
+	let self = Main_coin.vel2D;
+	let source = Main_initialVelocity;
+	self.x = source.x;
+	self.y = source.y;
+}
+function Main_update(t_s,dt_s) {
+	let v = Main_coin.pos2D;
+	let r = Math.sqrt(v.x * v.x + v.y * v.y);
+	let v1 = Main_coin.pos2D;
+	let lenSq = v1.x * v1.x + v1.y * v1.y;
+	let denominator = lenSq == 0.0 ? 1.0 : Math.sqrt(lenSq);
+	let a = -Main_G / (r * r);
+	let a1 = Main_coin.vel2D;
+	a1.x += v1.x / denominator * a;
+	a1.y += v1.y / denominator * a;
+	let a2 = Main_coin.vel2D;
+	let a3 = Main_coin.vel2D;
+	let b = Main_drag;
+	a2.x += -a3.x * b * dt_s;
+	a2.y += -a3.y * b * dt_s;
+	let a4 = Main_coin.pos2D;
+	let a5 = Main_coin.vel2D;
+	a4.x += a5.x * dt_s;
+	a4.y += a5.y * dt_s;
+	let this1 = Main_coin.pos2D;
+	let l = Math.sqrt(this1.x * this1.x + this1.y * this1.y);
+	let self = Main_coin.pos2D;
+	let this11 = Main_coin.pos2D;
+	let v2 = this11;
+	let lenSq1 = v2.x * this11.x + v2.y * this11.y;
+	let denominator1 = lenSq1 == 0.0 ? 1.0 : Math.sqrt(lenSq1);
+	let max = Math.abs(1 / (0 - Main_vortexDelta));
+	let b1 = l < 0 ? 0 : l > max ? max : l;
+	self.x = v2.x / denominator1 * b1;
+	self.y = v2.y / denominator1 * b1;
+	let y = -Math.abs(1 / r - Main_vortexDelta);
+	let v3 = Main_coin.pos2D;
+	let r1 = Math.sqrt(v3.x * v3.x + v3.y * v3.y);
+	let slope = Math.atan(1 / (r1 * r1));
+	let direction = Math.atan2(Main_coin.vel2D.y,-Main_coin.vel2D.x);
+	Main_coin.rotation.set(0,0,0);
+	Main_coin.rotateX(-slope);
+	Main_coin.rotateOnWorldAxis(new three_Vector3(0,1,0),direction);
+	let tmp = Main_coin.position;
+	let f = Main_coin.pos2D.x;
+	let tmp1 = isFinite(f) ? Main_coin.pos2D.x : 0;
+	let tmp2 = isFinite(y) ? y : 0;
+	let f1 = Main_coin.pos2D.y;
+	tmp.set(tmp1,tmp2,isFinite(f1) ? Main_coin.pos2D.y : 0);
+	let coinCenter = Main_coin.position.clone().add(new three_Vector3(0,0.025,0.));
+	let x = new three_Vector3(0.2,0,0);
+	x.applyQuaternion(Main_coin.quaternion);
+	let y1 = new three_Vector3(0.0,0.05,0);
+	y1.applyQuaternion(Main_coin.quaternion);
+	let camPos = coinCenter.clone().add(x);
+	camPos.add(y1);
+	let f2 = camPos.y;
+	let tmp3 = isFinite(f2) ? camPos.y : Main_coin.position.y;
+	Main_camPosY.target = tmp3;
+	let f3 = camPos.x;
+	let tmp4 = isFinite(f3) ? camPos.x : Main_coin.position.x;
+	Main_camPosX.target = tmp4;
+	let f4 = camPos.z;
+	let tmp5 = isFinite(f4) ? camPos.z : Main_coin.position.z;
+	Main_camPosZ.target = tmp5;
+	Main_animator.step(dt_s);
+	Main_camera.position.set(Main_camPosX.value,Main_camPosY.value,Main_camPosZ.value);
+	Main_camera.lookAt(coinCenter);
+	Main_camera.rotateOnWorldAxis(x.normalize(),-slope);
 }
 function Main_animationFrame(time_ms) {
 	let time_s = time_ms / 1000;
@@ -1372,64 +1805,6 @@ function Main_animationFrame(time_ms) {
 	Main_renderer.clear(true,true,true);
 	Main_renderer.render(Main_scene,Main_camera);
 	window.requestAnimationFrame(Main_animationFrame);
-}
-function Main_update(time_s,dt_s) {
-	Main_coin.position.x = Math.sin(time_s);
-	let self = Main_arcBallControl.target;
-	let source = Main_coin.position;
-	self.x = source.x;
-	self.y = source.y;
-	self.z = source.z;
-	let _this = Main_arcBallControl;
-	let camera = Main_camera;
-	_this.angleAroundY.step(dt_s);
-	_this.angleAroundXZ.step(dt_s);
-	_this.axialRotation.step(dt_s);
-	_this.radius.step(dt_s);
-	_this.position.x = _this.radius.value * Math.sin(_this.angleAroundY.value) * Math.cos(_this.angleAroundXZ.value);
-	_this.position.z = _this.radius.value * Math.cos(_this.angleAroundY.value) * Math.cos(_this.angleAroundXZ.value);
-	_this.position.y = _this.radius.value * Math.sin(_this.angleAroundXZ.value);
-	let this1 = _this.position;
-	let v = this1;
-	let lenSq = v.x * this1.x + v.y * this1.y + v.z * this1.z;
-	let denominator = lenSq == 0.0 ? 1.0 : Math.sqrt(lenSq);
-	let angle = _this.axialRotation.value;
-	let sa = Math.sin(angle * 0.5);
-	let x = v.x / denominator * sa;
-	let y = v.y / denominator * sa;
-	let z = v.z / denominator * sa;
-	let w = Math.cos(angle * 0.5);
-	let angle1 = _this.angleAroundY.value;
-	let sa1 = Math.sin(angle1 * 0.5);
-	let x1 = 0 * sa1;
-	let y1 = 1 * sa1;
-	let z1 = 0 * sa1;
-	let w1 = Math.cos(angle1 * 0.5);
-	let angle2 = -_this.angleAroundXZ.value;
-	let sa2 = Math.sin(angle2 * 0.5);
-	let x2 = 1 * sa2;
-	let y2 = 0 * sa2;
-	let z2 = 0 * sa2;
-	let w2 = Math.cos(angle2 * 0.5);
-	let self1 = _this.orientation;
-	let x3 = x1 * w2 + y1 * z2 - z1 * y2 + w1 * x2;
-	let y3 = -x1 * z2 + y1 * w2 + z1 * x2 + w1 * y2;
-	let z3 = x1 * y2 - y1 * x2 + z1 * w2 + w1 * z2;
-	let w3 = -x1 * x2 - y1 * y2 - z1 * z2 + w1 * w2;
-	self1.x = x * w3 + y * z3 - z * y3 + w * x3;
-	self1.y = -x * z3 + y * w3 + z * x3 + w * y3;
-	self1.z = x * y3 - y * x3 + z * w3 + w * z3;
-	self1.w = -x * x3 - y * y3 - z * z3 + w * w3;
-	let a = _this.position;
-	let b = _this.target;
-	let q = _this.orientation;
-	camera.position.x = a.x + b.x;
-	camera.position.y = a.y + b.y;
-	camera.position.z = a.z + b.z;
-	camera.quaternion.x = q.x;
-	camera.quaternion.y = q.y;
-	camera.quaternion.z = q.z;
-	camera.quaternion.w = q.w;
 }
 function Main_initDevUI() {
 	let gui = new ui_DevUI({ closed : false});
@@ -1696,13 +2071,6 @@ function Structure_extendAny(base,extendWidth) {
 	}
 	return extended;
 }
-class Vec2Data {
-	constructor(x,y) {
-		this.x = x;
-		this.y = y;
-	}
-}
-Vec2Data.__name__ = true;
 class Vec3Data {
 	constructor(x,y,z) {
 		this.x = x;
@@ -1779,7 +2147,7 @@ class Vortex extends three_Mesh {
 		domeMaterial.clearcoatRoughness = 0;
 		domeMaterial.transmission = 1;
 		domeMaterial.ior = 1.7008443908323283;
-		domeMaterial.thickness = 0.14578666207134242;
+		domeMaterial.thickness = 0.01;
 		domeMaterial.attenuationColor.setHex(1718427);
 		domeMaterial.attenuationDistance = 6.6620713424090985;
 		domeMaterial.sheen = 0;
@@ -1788,92 +2156,11 @@ class Vortex extends three_Mesh {
 		ui_DevUI.patchFolder(ui_DevUI.internalAddMaterial(Main_devUI,domeMaterial,"domeMaterial"));
 		let dome = new three_Mesh(new three_SphereGeometry(1,40,40,0,Math.PI),domeMaterial);
 		dome.rotateX(-Math.PI * 0.5);
-		dome.scale.setScalar(Math.abs(-3.33333333333333348));
+		dome.scale.setScalar(Math.abs(1 / (0 - Main_vortexDelta)));
 		this.add(dome);
 	}
 }
 Vortex.__name__ = true;
-class material_CustomPhysicalMaterial extends three_ShaderMaterial {
-	constructor(additionalUniforms,parameters) {
-		let tmp = Structure_extendAny(Three.ShaderLib.physical.uniforms,additionalUniforms != null ? additionalUniforms : { });
-		super(Structure_extendAny({ defines : { "STANDARD" : "", "PHYSICAL" : ""}, uniforms : tmp, vertexShader : Three.ShaderLib.physical.vertexShader, fragmentShader : Three.ShaderLib.physical.fragmentShader, fog : true},parameters != null ? parameters : { }));
-		this.flatShading = false;
-		this.color = new three_Color(16777215);
-		this.roughness = 1.0;
-		this.metalness = 0.0;
-		this.map = null;
-		this.lightMap = null;
-		this.lightMapIntensity = 1.0;
-		this.aoMap = null;
-		this.aoMapIntensity = 1.0;
-		this.emissive = new three_Color(0);
-		this.emissiveIntensity = 1.0;
-		this.emissiveMap = null;
-		this.bumpMap = null;
-		this.bumpScale = 1;
-		this.normalMap = null;
-		this.normalMapType = three_NormalMapTypes.TangentSpaceNormalMap;
-		this.normalScale = new three_Vector2(1,1);
-		this.displacementMap = null;
-		this.displacementScale = 1;
-		this.displacementBias = 0;
-		this.roughnessMap = null;
-		this.metalnessMap = null;
-		this.alphaMap = null;
-		this.envMap = null;
-		this.envMapIntensity = 1.0;
-		this.refractionRatio = 0.98;
-		this.wireframeLinecap = "round";
-		this.wireframeLinejoin = "round";
-		this.isMeshStandardMaterial = true;
-		if(this.clearcoat > 0 != false) {
-			this.version++;
-		}
-		this.clearcoat = 0.0;
-		this.clearcoatMap = null;
-		this.clearcoatRoughness = 0.0;
-		this.clearcoatRoughnessMap = null;
-		this.clearcoatNormalScale = new three_Vector2(1,1);
-		this.clearcoatNormalMap = null;
-		if(this.sheen > 0 != false) {
-			this.version++;
-		}
-		this.sheen = 0.0;
-		this.sheenColor = new three_Color(0);
-		this.sheenColorMap = null;
-		this.sheenRoughness = 1.0;
-		this.sheenRoughnessMap = null;
-		this.transparency = 0.0;
-		if(this.transmission > 0 != false) {
-			this.version++;
-		}
-		this.transmission = 0.;
-		this.ior = 1.5;
-		this.transmissionMap = null;
-		this.thickness = 0.01;
-		this.thicknessMap = null;
-		this.attenuationDistance = 0.0;
-		this.attenuationColor = new three_Color(1,1,1);
-		this.specularIntensity = 1.0;
-		this.specularColor = new three_Color(1,1,1);
-		this.specularIntensityMap = null;
-		this.specularColorMap = null;
-		this.isMeshPhysicalMaterial = true;
-		this.isInitialized = true;
-		if(parameters != null) {
-			this.setValues(parameters);
-		}
-	}
-	setValues(parameters) {
-		if(!this.isInitialized) {
-			let _g = 0;
-			let _g1 = Reflect.fields(parameters);
-			while(_g < _g1.length) this[_g1[_g++]] = null;
-		}
-		super.setValues(parameters);
-	}
-}
-material_CustomPhysicalMaterial.__name__ = true;
 class VortexMaterial extends material_CustomPhysicalMaterial {
 	constructor(options) {
 		super(null,options);
@@ -1905,7 +2192,7 @@ class VortexGeometry extends three_BufferGeometry {
 				let self_y = 0;
 				let self_z = 0;
 				self_y = -hSpacing * vertexRow;
-				let r = Math.abs(1 / (self_y - 0.3));
+				let r = Math.abs(1 / (self_y - Main_vortexDelta));
 				self_x1 = Math.cos(angle) * r;
 				self_z = Math.sin(angle) * r;
 				let vi = i * 3;
@@ -1944,97 +2231,134 @@ class VortexGeometry extends three_BufferGeometry {
 	}
 }
 VortexGeometry.__name__ = true;
-class animation_Spring {
-	constructor(initialValue,target,style,velocity,onUpdate,onComplete) {
-		if(velocity == null) {
-			velocity = 0.0;
+var animation_Easing = $hxEnums["animation.Easing"] = { __ename__:true,__constructs__:null
+	,Linear: {_hx_name:"Linear",_hx_index:0,__enum__:"animation.Easing",toString:$estr}
+	,SineIn: {_hx_name:"SineIn",_hx_index:1,__enum__:"animation.Easing",toString:$estr}
+	,SineOut: {_hx_name:"SineOut",_hx_index:2,__enum__:"animation.Easing",toString:$estr}
+	,SineInOut: {_hx_name:"SineInOut",_hx_index:3,__enum__:"animation.Easing",toString:$estr}
+	,QuadIn: {_hx_name:"QuadIn",_hx_index:4,__enum__:"animation.Easing",toString:$estr}
+	,QuadOut: {_hx_name:"QuadOut",_hx_index:5,__enum__:"animation.Easing",toString:$estr}
+	,QuadInOut: {_hx_name:"QuadInOut",_hx_index:6,__enum__:"animation.Easing",toString:$estr}
+	,CubicIn: {_hx_name:"CubicIn",_hx_index:7,__enum__:"animation.Easing",toString:$estr}
+	,CubicOut: {_hx_name:"CubicOut",_hx_index:8,__enum__:"animation.Easing",toString:$estr}
+	,CubicInOut: {_hx_name:"CubicInOut",_hx_index:9,__enum__:"animation.Easing",toString:$estr}
+	,Custom: ($_=function(fn) { return {_hx_index:10,fn:fn,__enum__:"animation.Easing",toString:$estr}; },$_._hx_name="Custom",$_.__params__ = ["fn"],$_)
+};
+animation_Easing.__constructs__ = [animation_Easing.Linear,animation_Easing.SineIn,animation_Easing.SineOut,animation_Easing.SineInOut,animation_Easing.QuadIn,animation_Easing.QuadOut,animation_Easing.QuadInOut,animation_Easing.CubicIn,animation_Easing.CubicOut,animation_Easing.CubicInOut,animation_Easing.Custom];
+class animation_EasingFunctions {
+	static linear(x0,x1,duration,t) {
+		return x0 + (x1 - x0) * (t / duration);
+	}
+	static sineIn(x0,x1,duration,t) {
+		return x1 - (x1 - x0) * Math.cos(Math.PI / 2 * (t / duration));
+	}
+	static sineOut(x0,x1,duration,t) {
+		return x0 + (x1 - x0) * Math.sin(Math.PI / 2 * (t / duration));
+	}
+	static sineInOut(x0,x1,duration,t) {
+		return x0 - .5 * (x1 - x0) * (Math.cos(Math.PI * (t / duration)) - 1);
+	}
+	static quadIn(x0,x1,duration,t) {
+		t /= duration;
+		return (x1 - x0) * t * t + x0;
+	}
+	static quadOut(x0,x1,duration,t) {
+		t /= duration;
+		return -(x1 - x0) * t * (t - 2) + x0;
+	}
+	static quadInOut(x0,x1,duration,t) {
+		t *= 2 / duration;
+		if(t < 1) {
+			return (x1 - x0) * .5 * t * t + x0;
 		}
-		this.minEnergyThreshold = 1e-5;
-		if(style == null) {
-			style = animation_SpringStyle.Critical(0.5);
+		--t;
+		return -(x1 - x0) * .5 * (t * (t - 2) - 1) + x0;
+	}
+	static cubicIn(x0,x1,duration,t) {
+		t /= duration;
+		return (x1 - x0) * t * t * t + x0;
+	}
+	static cubicOut(x0,x1,duration,t) {
+		t = t / duration - 1;
+		return (x1 - x0) * (t * t * t + 1) + x0;
+	}
+	static cubicInOut(x0,x1,duration,t) {
+		t *= 2 / duration;
+		if(t < 1) {
+			return (x1 - x0) * .5 * t * t * t + x0;
 		}
-		this.value = initialValue;
-		this.target = target == null ? initialValue : target;
-		switch(style._hx_index) {
-		case 0:
-			this.damping = 3.356694 / style.approxHalfLife_s;
-			this.strength = this.damping * this.damping / 4;
-			break;
-		case 1:
-			this.damping = style.damping;
-			this.strength = style.strength;
-			break;
-		}
-		this.velocity = velocity;
+		t -= 2;
+		return (x1 - x0) * .5 * (t * t * t + 2) + x0;
+	}
+}
+animation_EasingFunctions.__name__ = true;
+class animation_Tween {
+	constructor(easing,setValue,x0,x1,duration_s,onUpdate,onComplete) {
+		this.t = 0.;
+		this.easeFn = this.getEasingFunction(easing);
+		this.setValue = setValue;
+		this.x0 = x0;
+		this.x1 = x1;
+		this.duration_s = duration_s;
 		this.onUpdate = onUpdate;
 		this.onComplete = onComplete;
 	}
 	step(dt_s) {
-		let V0 = this.velocity;
-		let X0 = this.value - this.target;
-		if(X0 == 0 && V0 == 0 || dt_s == 0) {
-			return;
-		}
-		let k = this.strength;
-		let b = this.damping;
-		if(this.getTotalEnergy() < this.minEnergyThreshold) {
-			this.velocity = 0;
-			this.value = this.target;
-			if(this.onComplete != null) {
-				this.onComplete();
-			}
-		} else {
-			let critical = k * 4 - b * b;
-			if(critical > 0) {
-				let q = 0.5 * Math.sqrt(critical);
-				let B = (b * X0 * 0.5 + V0) / q;
-				let m = Math.exp(-b * 0.5 * dt_s);
-				let c = Math.cos(q * dt_s);
-				let s = Math.sin(q * dt_s);
-				this.velocity = m * ((B * q - 0.5 * X0 * b) * c + (-X0 * q - 0.5 * b * B) * s);
-				this.value = m * (X0 * c + B * s) + this.target;
-			} else if(critical < 0) {
-				let u = 0.5 * Math.sqrt(-critical);
-				let p = -0.5 * b + u;
-				let n = -0.5 * b - u;
-				let B = -(n * X0 - V0) / (2 * u);
-				let A = X0 - B;
-				let ep = Math.exp(p * dt_s);
-				let en = Math.exp(n * dt_s);
-				this.velocity = A * n * en + B * p * ep;
-				this.value = A * en + B * ep + this.target;
-			} else {
-				let w = Math.sqrt(k);
-				let B = V0 + w * X0;
-				let e = Math.exp(-w * dt_s);
-				this.velocity = (B - w * (X0 + B * dt_s)) * e;
-				this.value = (X0 + B * dt_s) * e + this.target;
-			}
-		}
+		this.t += dt_s;
+		let complete = this.isComplete();
+		let x = complete ? this.x1 : this.easeFn(this.x0,this.x1,this.duration_s,this.t);
+		this.setValue(x);
 		if(this.onUpdate != null) {
-			this.onUpdate(this.value,this.velocity);
+			this.onUpdate(x);
+		}
+		if(complete && this.onComplete != null) {
+			this.onComplete();
 		}
 	}
-	getTotalEnergy() {
-		let x = this.value - this.target;
-		return 0.5 * this.velocity * this.velocity + 0.5 * this.strength * x * x;
+	isComplete() {
+		return this.t >= this.duration_s;
 	}
-	forceCompletion(v) {
-		if(v != null) {
-			this.target = v;
+	getEasingFunction(easing) {
+		switch(easing._hx_index) {
+		case 0:
+			return animation_EasingFunctions.linear;
+		case 1:
+			return animation_EasingFunctions.sineIn;
+		case 2:
+			return animation_EasingFunctions.sineOut;
+		case 3:
+			return animation_EasingFunctions.sineInOut;
+		case 4:
+			return animation_EasingFunctions.quadIn;
+		case 5:
+			return animation_EasingFunctions.quadOut;
+		case 6:
+			return animation_EasingFunctions.quadInOut;
+		case 7:
+			return animation_EasingFunctions.cubicIn;
+		case 8:
+			return animation_EasingFunctions.cubicOut;
+		case 9:
+			return animation_EasingFunctions.cubicInOut;
+		case 10:
+			return easing.fn;
 		}
-		this.value = this.target;
-		this.velocity = 0;
-		this.step(0);
 	}
 }
-animation_Spring.__name__ = true;
-var animation_SpringStyle = $hxEnums["animation.SpringStyle"] = { __ename__:true,__constructs__:null
-	,Critical: ($_=function(approxHalfLife_s) { return {_hx_index:0,approxHalfLife_s:approxHalfLife_s,__enum__:"animation.SpringStyle",toString:$estr}; },$_._hx_name="Critical",$_.__params__ = ["approxHalfLife_s"],$_)
-	,Custom: ($_=function(strength,damping) { return {_hx_index:1,strength:strength,damping:damping,__enum__:"animation.SpringStyle",toString:$estr}; },$_._hx_name="Custom",$_.__params__ = ["strength","damping"],$_)
-};
-animation_SpringStyle.__constructs__ = [animation_SpringStyle.Critical,animation_SpringStyle.Custom];
+animation_Tween.__name__ = true;
 class event_KeyboardEvent {
+	constructor(key,code,location,altKey,ctrlKey,metaKey,shiftKey,preventDefault,defaultPrevented,nativeEvent) {
+		this.key = key;
+		this.code = code;
+		this.location = location;
+		this.altKey = altKey;
+		this.ctrlKey = ctrlKey;
+		this.metaKey = metaKey;
+		this.shiftKey = shiftKey;
+		this.preventDefault = preventDefault;
+		this.defaultPrevented = defaultPrevented;
+		this.nativeEvent = nativeEvent;
+	}
 }
 event_KeyboardEvent.__name__ = true;
 class event_PointerState {
@@ -2198,9 +2522,6 @@ var three_AxesHelper = require("three").AxesHelper;
 var three_BufferAttribute = require("three").BufferAttribute;
 var three_Float32BufferAttribute = require("three").Float32BufferAttribute;
 var three_Mapping = require("three");
-var three_MeshBasicMaterial = require("three").MeshBasicMaterial;
-var three_MeshStandardMaterial = require("three").MeshStandardMaterial;
-var three_MeshPhysicalMaterial = require("three").MeshPhysicalMaterial;
 var three_NormalMapTypes = require("three");
 var three_PixelFormat = require("three");
 var three_SphereGeometry = require("three").SphereGeometry;
@@ -2282,13 +2603,42 @@ var Main_renderer = (function($this) {
 }(this));
 var Main_scene = new three_Scene();
 var Main_eventManager = new event_ViewEventManager(Main_canvas);
-var Main_arcBallControl = new control_ArcBallControl({ viewEventManager : Main_eventManager, radius : 0.2, dragSpeed : 4., zoomSpeed : 1., angleAroundY : Math.PI * 0.5});
+var Main_arcBallControl = new control_ArcBallControl({ viewEventManager : Main_eventManager, radius : 0.2, dragSpeed : 4., zoomSpeed : 1., angleAroundY : 0.});
 var Main_uTime_s = new three_Uniform(0.0);
 var Main_background = new rendering_BackgroundEnvironment();
 var Main_environmentManager = new environment_EnvironmentManager(Main_renderer,Main_scene,"assets/env/paul_lobe_haus_1k.rgbd.png",function(env) {
 });
 var Main_devUI = Main_initDevUI();
+var Main_G = 0.;
+var Main_drag = 0.;
+var Main_initialVelocity = new Vec2Data(0,0);
 var Main_coin = new Coin();
+var Main_vortexDelta = 0.3;
+var Main_animator = new animation_Animator();
+var Main_camPosX = (function($this) {
+	var $r;
+	let _this = Main_animator;
+	let spring = new animation_Spring(0,0,animation_SpringStyle.Critical(0.005),0.0,null,null);
+	_this.springs.push(spring);
+	$r = spring;
+	return $r;
+}(this));
+var Main_camPosY = (function($this) {
+	var $r;
+	let _this = Main_animator;
+	let spring = new animation_Spring(0,0,animation_SpringStyle.Critical(0.005),0.0,null,null);
+	_this.springs.push(spring);
+	$r = spring;
+	return $r;
+}(this));
+var Main_camPosZ = (function($this) {
+	var $r;
+	let _this = Main_animator;
+	let spring = new animation_Spring(0,0,animation_SpringStyle.Critical(0.005),0.0,null,null);
+	_this.springs.push(spring);
+	$r = spring;
+	return $r;
+}(this));
 var Main_animationFrame_lastTime_ms = -1.0;
 tool_IBLGenerator.LOD_MAX = 8;
 tool_IBLGenerator.SIZE_MAX = Math.pow(2,tool_IBLGenerator.LOD_MAX);
