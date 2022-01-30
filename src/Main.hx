@@ -1,11 +1,14 @@
-import event.ViewEventManager;
+import three.MeshNormalMaterial;
+import three.SphereGeometry;
 import environment.EnvironmentManager;
+import event.ViewEventManager;
 import rendering.BackgroundEnvironment;
-import three.PlaneGeometry;
+import three.AxesHelper;
+import three.Mesh;
+import three.MeshPhysicalMaterial;
 import three.Scene;
 import three.Uniform;
 import three.WebGLRenderer;
-import three.examples.jsm.loaders.gltfloader.GLTFLoader;
 import ui.DevUI;
 
 // settings
@@ -51,15 +54,13 @@ final arcBallControl = new control.ArcBallControl({
 	radius: 4.,
 	dragSpeed: 4.,
 	zoomSpeed: 1.,
+	angleAroundXZ: 0.5,
 });
 
 final uTime_s = new Uniform(0.0);
 
 final background = new BackgroundEnvironment();
-final environmentManager = new EnvironmentManager(renderer, scene, 'assets/env/kiara_1_dawn_2k.rgbd.png', (env) -> {});
-
-// embed the glb model as a base64 string
-final haxeLogoDataUrl = 'data:model/gltf-binary;base64,' + CompileTime.embedBase64('haxe-logo.glb');
+final environmentManager = new EnvironmentManager(renderer, scene, 'assets/env/paul_lobe_haus_1k.rgbd.png', (env) -> {});
 
 @:keep var devUI = initDevUI();
 
@@ -70,29 +71,24 @@ function main() {
 	// load a hdr environment texture and add the background object
 	scene.add(background);
 
-	// load our haxe logo glb file
-	new GLTFLoader().load(haxeLogoDataUrl, (gltf) -> {
-		gltf.scene.position.y = 1;
-		scene.add(gltf.scene);
-	});
+	scene.add(new Vortex());
 
-	// nice reflective floor
-	var floor = new objects.GlassReflectiveFloor(new PlaneGeometry(10, 10));
-	floor.rotateX(-Math.PI * .5);
-	floor.reflectorResolution = 0.15;
-	floor.reflectorKernel = 0.075;
-	floor.reflectorMaterial.transparent = true;
-	floor.reflectorMaterial.opacity = 0.25;
-	scene.add(floor);
-	var floorUI = devUI.addFolder('Floor');
-	floorUI.add(floor.reflectorResolution, 0, 1);
-	floorUI.add(floor.reflectorKernel, 0, 0.1);
+	#if dev
+	var axis = new AxesHelper();
+	scene.add(axis);
+	#end
 
 	// set camera look-at target
-	arcBallControl.target.y = 1.;
+	arcBallControl.target.y = 0.;
 
 	// begin frame loop
 	animationFrame(window.performance.now());
+}
+
+inline function vortexFn(r: Float) {
+	return vec3(
+		0.	
+	);
 }
 
 private var animationFrame_lastTime_ms = -1.0;
