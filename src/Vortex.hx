@@ -63,7 +63,7 @@ class Vortex extends Mesh<three.BufferGeometry, VortexMaterial> {
 		m.clearcoatRoughness = 0;
 		m.transmission = 1;
 		m.ior = 1.7008443908323283;
-		m.thickness = 0.14578666207134242;
+		m.thickness = 0.01;
 		m.attenuationColor.setHex(0x1a389b);
 		m.attenuationDistance = 6.6620713424090985;
 		m.sheen = 0;

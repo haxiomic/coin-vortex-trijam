@@ -1,3 +1,6 @@
+import animation.Animator;
+import animation.Spring;
+import three.Vector3;
 import environment.EnvironmentManager;
 import event.ViewEventManager;
 import rendering.BackgroundEnvironment;
@@ -6,6 +9,7 @@ import three.Scene;
 import three.Uniform;
 import three.WebGLRenderer;
 import ui.DevUI;
+import Math.isFinite;
 
 // settings
 var pixelRatio = min(window.devicePixelRatio, 2);
@@ -50,7 +54,7 @@ final arcBallControl = new control.ArcBallControl({
 	radius: 0.2,
 	dragSpeed: 4.,
 	zoomSpeed: 1.,
-	angleAroundY: Math.PI * 0.5,
+	angleAroundY: 0.,
 });
 
 final uTime_s = new Uniform(0.0);
@@ -60,9 +64,17 @@ final environmentManager = new EnvironmentManager(renderer, scene, 'assets/env/p
 
 @:keep var devUI = initDevUI();
 
+var G: Float = 0.;
+var drag: Float = 0.;
+var initialVelocity = vec2(0);
 var coin = new Coin();
 
 function main() {
+	G = 0.16767189384800965;
+	drag = 0.0203;
+	initialVelocity.x = 0;
+	initialVelocity.y = 1.6794761330346373;
+
 	document.body.appendChild(canvas);
 
 	// create scene
@@ -73,6 +85,14 @@ function main() {
 
 	scene.add(coin);
 	
+	{
+		var g = devUI.addFolder('Setup');
+		g.internal.open();
+		g.add(G, 0, 0.5);
+		g.add(drag, 0., 0.1);
+		g.add(initialVelocity.x, -2, 2);
+		g.add(initialVelocity.y, -2, 2);
+	}
 
 	#if dev
 	var axis = new AxesHelper();
@@ -81,13 +101,101 @@ function main() {
 
 	// set camera look-at target
 	arcBallControl.target.y = 0.;
+	
+	eventManager.onKeyUp((e, onView) -> {
+		switch e.key {
+			case 'r':
+				start();
+			default: console.log('key ${e.key}');
+		}
+	});
 
 	// begin frame loop
 	animationFrame(window.performance.now());
+
+	start();
 }
 
+function start() {
+	coin.pos2D.set(vortexRadius(0) - 0.2, 0);
+	coin.vel2D.copyFrom(initialVelocity);
+
+}
+
+final vortexDelta = 0.3;
 inline function vortexRadius(y: Float) {
-	return abs(1/(y-0.3));
+	return abs(1/(y - vortexDelta));
+}
+inline function vortexY(r: Float) {
+	return -abs((1/r) - vortexDelta);
+}
+inline function vortexGradient(r: Float) {
+	return 1/(r*r);
+}
+
+var animator = new Animator();
+var camPosX = animator.createSpring(0, 0, Critical(0.005));
+var camPosY = animator.createSpring(0, 0, Critical(0.005));
+var camPosZ = animator.createSpring(0, 0, Critical(0.005));
+
+function update(t_s: Float, dt_s: Float) {
+	// physics
+	// correspondence between 2D gravitational potential?
+	var r = length(coin.pos2D);
+
+	// attract to center
+	var n = normalize(coin.pos2D);
+	var a = -G/(r*r);
+	coin.vel2D += a * n;
+
+	// drag
+	coin.vel2D += -coin.vel2D * drag * dt_s;
+
+	coin.pos2D += coin.vel2D * dt_s;
+	
+	// clamp position
+	var l = coin.pos2D.length();
+	coin.pos2D.copyFrom(coin.pos2D.normalize() * clamp(l, 0, vortexRadius(0)));
+
+	// pose coin in 3D
+	var y = vortexY(r);
+	var g = vortexGradient(length(coin.pos2D));
+	var slope = atan(g);
+	var direction = atan2(coin.vel2D.y, -coin.vel2D.x);
+
+	coin.rotation.set(0, 0, 0);
+	coin.rotateX(-slope);
+	coin.rotateOnWorldAxis(new Vector3(0, 1, 0), direction);
+	
+	coin.position.set(
+		Math.isFinite(coin.pos2D.x) ? coin.pos2D.x : 0,
+		Math.isFinite(y) ? y : 0,
+		Math.isFinite(coin.pos2D.y) ? coin.pos2D.y : 0
+	);
+
+	// position camera
+
+
+	var coinCenter = coin.position.clone().add(new Vector3(0, Coin.coinScale * 0.5, 0.));
+	var x = new Vector3(0.2, 0, 0);
+	x.applyQuaternion(coin.quaternion);
+	var y = new Vector3(0.0, 0.05, 0);
+	y.applyQuaternion(coin.quaternion);
+	var camPos = coinCenter.clone().add(x);
+	camPos.add(y);
+
+	camPosY.target = isFinite(camPos.y) ? camPos.y : coin.position.y;
+	camPosX.target = isFinite(camPos.x) ? camPos.x : coin.position.x;
+	camPosZ.target = isFinite(camPos.z) ? camPos.z : coin.position.z;
+
+	animator.step(dt_s);
+
+	camera.position.set(camPosX.value, camPosY.value, camPosZ.value);
+	camera.lookAt(coinCenter);
+	camera.rotateOnWorldAxis(x.normalize(), -slope);
+
+	// arcBallControl.target.copyFrom(coin.position);
+	// arcBallControl.update(camera, dt_s);
 }
 
 private var animationFrame_lastTime_ms = -1.0;
@@ -99,8 +207,6 @@ function animationFrame(time_ms: Float) {
 	animationFrame_lastTime_ms = time_ms;
 
 	uTime_s.value = time_s;
-
-	
 
 	var gl = renderer.getContext();
 
@@ -133,12 +239,6 @@ function animationFrame(time_ms: Float) {
 	renderer.render(scene, camera);
 
 	window.requestAnimationFrame(animationFrame);
-}
-
-function update(time_s: Float, dt_s: Float) {
-	coin.position.x = Math.sin(time_s);
-	arcBallControl.target.copyFrom(coin.position);
-	arcBallControl.update(camera, dt_s);
 }
 
 function initDevUI() {
