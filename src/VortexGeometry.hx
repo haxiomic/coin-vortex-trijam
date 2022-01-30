@@ -13,7 +13,7 @@ class VortexGeometry extends BufferGeometry {
 
 	public function new(widthSegments: Int, heightSegments: Int) {
 		super();
-		var height: Float = 4.;
+		var height: Float = Main.vortexHeight;
 		var indexCount = widthSegments * heightSegments * 2 * 3; // 2 triangles per cell, 3 indices per triangle
 		var vertexCount = (widthSegments + 1) * (heightSegments + 1);
 		var hSpacing = height / heightSegments;

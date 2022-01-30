@@ -1,3 +1,4 @@
+import Structure.apply;
 import animation.Animator;
 import animation.Spring;
 import three.Vector3;
@@ -51,10 +52,11 @@ final eventManager = new ViewEventManager(canvas);
 
 final arcBallControl = new control.ArcBallControl({
 	viewEventManager: eventManager,
-	radius: 0.2,
+	radius: 5.,
 	dragSpeed: 4.,
 	zoomSpeed: 1.,
 	angleAroundY: 0.,
+	angleAroundXZ: 0.5,
 });
 
 final uTime_s = new Uniform(0.0);
@@ -67,13 +69,28 @@ final environmentManager = new EnvironmentManager(renderer, scene, 'assets/env/p
 var G: Float = 0.;
 var drag: Float = 0.;
 var initialVelocity = vec2(0);
+var control: Float = 0.;
 var coin = new Coin();
+
+var leftDown = false;
+var rightDown = false;
+var firstPerson = true;
+
+var timer = document.createDivElement();
+
+var aliveTime = 0.;
 
 function main() {
 	G = 0.16767189384800965;
 	drag = 0.0203;
 	initialVelocity.x = 0;
 	initialVelocity.y = 1.6794761330346373;
+	control = 1.;
+
+	devUI.internal.hide();
+	#if dev
+	// devUI.internal.show();
+	#end
 
 	document.body.appendChild(canvas);
 
@@ -92,7 +109,19 @@ function main() {
 		g.add(drag, 0., 0.1);
 		g.add(initialVelocity.x, -2, 2);
 		g.add(initialVelocity.y, -2, 2);
+		g.add(control, -2, 2);
 	}
+
+	timer.innerHTML = 'hello world';
+	apply(timer.style, {
+		position: 'absolute',
+		zIndex: '100',
+		left: '20px',
+		top: '20px',
+		fontFamily: 'sans-serif',
+		fontSize: '30px',
+	});
+	document.body.appendChild(timer);
 
 	#if dev
 	var axis = new AxesHelper();
@@ -105,8 +134,25 @@ function main() {
 	eventManager.onKeyUp((e, onView) -> {
 		switch e.key {
 			case 'r':
+			#if dev
 				start();
+			#end
+			case ' ':
+				firstPerson = !firstPerson;
 			default: console.log('key ${e.key}');
+		}
+	});
+
+	eventManager.onKeyDown((e, _) -> {
+		switch e.key {
+			case 'ArrowLeft': leftDown = true;
+			case 'ArrowRight': rightDown = true;
+		}
+	});
+	eventManager.onKeyUp((e, _) -> {
+		switch e.key {
+			case 'ArrowLeft': leftDown = false;
+			case 'ArrowRight': rightDown = false;
 		}
 	});
 
@@ -117,12 +163,17 @@ function main() {
 }
 
 function start() {
+	aliveTime = 0;
 	coin.pos2D.set(vortexRadius(0) - 0.2, 0);
 	coin.vel2D.copyFrom(initialVelocity);
+}
 
+function gameOver() {
+	start();
 }
 
 final vortexDelta = 0.3;
+final vortexHeight = 3;
 inline function vortexRadius(y: Float) {
 	return abs(1/(y - vortexDelta));
 }
@@ -139,6 +190,8 @@ var camPosY = animator.createSpring(0, 0, Critical(0.005));
 var camPosZ = animator.createSpring(0, 0, Critical(0.005));
 
 function update(t_s: Float, dt_s: Float) {
+	aliveTime += dt_s;
+	timer.innerHTML = Math.round(aliveTime) + ' s';
 	// physics
 	// correspondence between 2D gravitational potential?
 	var r = length(coin.pos2D);
@@ -151,17 +204,27 @@ function update(t_s: Float, dt_s: Float) {
 	// drag
 	coin.vel2D += -coin.vel2D * drag * dt_s;
 
+	// control
+	var vnorm = normalize(coin.vel2D);
+	var c = (leftDown ? -1 : 0) + (rightDown ? 1 : 0);
+	coin.vel2D += vec2(-vnorm.y, vnorm.x) * control * c * dt_s;
+
 	coin.pos2D += coin.vel2D * dt_s;
 	
 	// clamp position
 	var l = coin.pos2D.length();
-	coin.pos2D.copyFrom(coin.pos2D.normalize() * clamp(l, 0, vortexRadius(0)));
+	var R0 = vortexRadius(0);
+	if (l >= R0) {
+		coin.vel2D *= 0.9;
+		coin.pos2D.copyFrom(coin.pos2D.normalize() * R0);
+	}
+	// coin.pos2D.copyFrom(coin.pos2D.normalize() * clamp(l, 0, vortexRadius(0)));
 
 	// pose coin in 3D
 	var y = vortexY(r);
 	var g = vortexGradient(length(coin.pos2D));
 	var slope = atan(g);
-	var direction = atan2(coin.vel2D.y, -coin.vel2D.x);
+	var direction = atan2(coin.vel2D.y, -coin.vel2D.x) + 0.01;
 
 	coin.rotation.set(0, 0, 0);
 	coin.rotateX(-slope);
@@ -173,9 +236,11 @@ function update(t_s: Float, dt_s: Float) {
 		Math.isFinite(coin.pos2D.y) ? coin.pos2D.y : 0
 	);
 
+	if (coin.position.y < -(vortexHeight + vortexDelta)) {
+		gameOver();
+	}
+
 	// position camera
-
-
 	var coinCenter = coin.position.clone().add(new Vector3(0, Coin.coinScale * 0.5, 0.));
 	var x = new Vector3(0.2, 0, 0);
 	x.applyQuaternion(coin.quaternion);
@@ -195,7 +260,9 @@ function update(t_s: Float, dt_s: Float) {
 	camera.rotateOnWorldAxis(x.normalize(), -slope);
 
 	// arcBallControl.target.copyFrom(coin.position);
-	// arcBallControl.update(camera, dt_s);
+	if (!firstPerson) {
+		arcBallControl.update(camera, dt_s);
+	}
 }
 
 private var animationFrame_lastTime_ms = -1.0;
