@@ -1,3 +1,4 @@
+import Main.vortexRadius;
 import three.Float32BufferAttribute;
 import three.BufferAttribute;
 import js.lib.Uint32Array;
@@ -33,7 +34,7 @@ class VortexGeometry extends BufferGeometry {
 
 				pos.y = -hSpacing * vertexRow;
 
-				var r = 1/(pos.y-0.3);
+				var r = vortexRadius(pos.y);
 
 				pos.x = Math.cos(angle) * r;
 				pos.z = Math.sin(angle) * r;

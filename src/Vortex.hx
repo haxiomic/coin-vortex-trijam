@@ -1,3 +1,4 @@
+import Main.vortexRadius;
 import material.CustomPhysicalMaterial;
 import three.SphereGeometry;
 import three.Mesh;
@@ -72,7 +73,7 @@ class Vortex extends Mesh<three.BufferGeometry, VortexMaterial> {
 		devUI.add(domeMaterial);
 		var dome = new Mesh(new SphereGeometry(1, 40, 40, 0, Math.PI), domeMaterial);
 		dome.rotateX(-Math.PI * 0.5);
-		dome.scale.setScalar(3);
+		dome.scale.setScalar(vortexRadius(0));
 		this.add(dome);
 	}
 

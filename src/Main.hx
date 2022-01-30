@@ -1,11 +1,7 @@
-import three.MeshNormalMaterial;
-import three.SphereGeometry;
 import environment.EnvironmentManager;
 import event.ViewEventManager;
 import rendering.BackgroundEnvironment;
 import three.AxesHelper;
-import three.Mesh;
-import three.MeshPhysicalMaterial;
 import three.Scene;
 import three.Uniform;
 import three.WebGLRenderer;
@@ -51,10 +47,10 @@ final eventManager = new ViewEventManager(canvas);
 
 final arcBallControl = new control.ArcBallControl({
 	viewEventManager: eventManager,
-	radius: 4.,
+	radius: 0.2,
 	dragSpeed: 4.,
 	zoomSpeed: 1.,
-	angleAroundXZ: 0.5,
+	angleAroundY: Math.PI * 0.5,
 });
 
 final uTime_s = new Uniform(0.0);
@@ -64,6 +60,8 @@ final environmentManager = new EnvironmentManager(renderer, scene, 'assets/env/p
 
 @:keep var devUI = initDevUI();
 
+var coin = new Coin();
+
 function main() {
 	document.body.appendChild(canvas);
 
@@ -72,6 +70,9 @@ function main() {
 	scene.add(background);
 
 	scene.add(new Vortex());
+
+	scene.add(coin);
+	
 
 	#if dev
 	var axis = new AxesHelper();
@@ -85,10 +86,8 @@ function main() {
 	animationFrame(window.performance.now());
 }
 
-inline function vortexFn(r: Float) {
-	return vec3(
-		0.	
-	);
+inline function vortexRadius(y: Float) {
+	return abs(1/(y-0.3));
 }
 
 private var animationFrame_lastTime_ms = -1.0;
@@ -100,6 +99,8 @@ function animationFrame(time_ms: Float) {
 	animationFrame_lastTime_ms = time_ms;
 
 	uTime_s.value = time_s;
+
+	
 
 	var gl = renderer.getContext();
 
@@ -135,6 +136,8 @@ function animationFrame(time_ms: Float) {
 }
 
 function update(time_s: Float, dt_s: Float) {
+	coin.position.x = Math.sin(time_s);
+	arcBallControl.target.copyFrom(coin.position);
 	arcBallControl.update(camera, dt_s);
 }
 
