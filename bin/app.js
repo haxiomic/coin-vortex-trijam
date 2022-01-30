@@ -1,5 +1,15 @@
 (function ($global) { "use strict";
 var $estr = function() { return js_Boot.__string_rec(this,''); },$hxEnums = $hxEnums || {},$_;
+var three_Mesh = require("three").Mesh;
+class Coin extends three_Mesh {
+	constructor() {
+		let geom = new three_CylinderGeometry(undefined,undefined,0.1,40);
+		geom.applyQuaternion(new three_Quaternion().setFromAxisAngle(new three_Vector3(1,0,0),Math.PI * 0.5));
+		geom.scale(0.05,0.05,0.05);
+		super(geom,new three_MeshNormalMaterial());
+	}
+}
+Coin.__name__ = true;
 class EReg {
 	constructor(r,opt) {
 		this.r = new RegExp(r,opt.split("u").join(""));
@@ -391,6 +401,7 @@ class event__$ViewEventManager_EventDispatcher {
 	}
 }
 event__$ViewEventManager_EventDispatcher.__name__ = true;
+Math.__name__ = true;
 class control_ArcBallControl {
 	constructor(options) {
 		this._drivingPointerId = null;
@@ -480,8 +491,6 @@ class control_ArcBallControl {
 	}
 }
 control_ArcBallControl.__name__ = true;
-Math.__name__ = true;
-var three_Mesh = require("three").Mesh;
 class rendering_BackgroundEnvironment extends three_Mesh {
 	constructor(roughness) {
 		if(roughness == null) {
@@ -538,6 +547,10 @@ var three_Blending = require("three");
 var three_BufferGeometry = require("three").BufferGeometry;
 var three_BoxGeometry = require("three").BoxGeometry;
 var three_PerspectiveCamera = require("three").PerspectiveCamera;
+var three_CylinderGeometry = require("three").CylinderGeometry;
+var three_Quaternion = require("three").Quaternion;
+var three_Vector3 = require("three").Vector3;
+var three_MeshNormalMaterial = require("three").MeshNormalMaterial;
 var ui_ExposedGUI = require("dat.gui").GUI;
 class ui_DevUI extends ui_ExposedGUI {
 	constructor(options) {
@@ -1323,6 +1336,7 @@ function Main_main() {
 	window.document.body.appendChild(Main_canvas);
 	Main_scene.add(Main_background);
 	Main_scene.add(new Vortex());
+	Main_scene.add(Main_coin);
 	Main_scene.add(new three_AxesHelper());
 	Main_arcBallControl.target.y = 0.;
 	Main_animationFrame(window.performance.now());
@@ -1360,6 +1374,12 @@ function Main_animationFrame(time_ms) {
 	window.requestAnimationFrame(Main_animationFrame);
 }
 function Main_update(time_s,dt_s) {
+	Main_coin.position.x = Math.sin(time_s);
+	let self = Main_arcBallControl.target;
+	let source = Main_coin.position;
+	self.x = source.x;
+	self.y = source.y;
+	self.z = source.z;
 	let _this = Main_arcBallControl;
 	let camera = Main_camera;
 	_this.angleAroundY.step(dt_s);
@@ -1391,15 +1411,15 @@ function Main_update(time_s,dt_s) {
 	let y2 = 0 * sa2;
 	let z2 = 0 * sa2;
 	let w2 = Math.cos(angle2 * 0.5);
-	let this2 = _this.orientation;
+	let self1 = _this.orientation;
 	let x3 = x1 * w2 + y1 * z2 - z1 * y2 + w1 * x2;
 	let y3 = -x1 * z2 + y1 * w2 + z1 * x2 + w1 * y2;
 	let z3 = x1 * y2 - y1 * x2 + z1 * w2 + w1 * z2;
 	let w3 = -x1 * x2 - y1 * y2 - z1 * z2 + w1 * w2;
-	this2.x = x * w3 + y * z3 - z * y3 + w * x3;
-	this2.y = -x * z3 + y * w3 + z * x3 + w * y3;
-	this2.z = x * y3 - y * x3 + z * w3 + w * z3;
-	this2.w = -x * x3 - y * y3 - z * z3 + w * w3;
+	self1.x = x * w3 + y * z3 - z * y3 + w * x3;
+	self1.y = -x * z3 + y * w3 + z * x3 + w * y3;
+	self1.z = x * y3 - y * x3 + z * w3 + w * z3;
+	self1.w = -x * x3 - y * y3 - z * z3 + w * w3;
 	let a = _this.position;
 	let b = _this.target;
 	let q = _this.orientation;
@@ -1768,7 +1788,7 @@ class Vortex extends three_Mesh {
 		ui_DevUI.patchFolder(ui_DevUI.internalAddMaterial(Main_devUI,domeMaterial,"domeMaterial"));
 		let dome = new three_Mesh(new three_SphereGeometry(1,40,40,0,Math.PI),domeMaterial);
 		dome.rotateX(-Math.PI * 0.5);
-		dome.scale.setScalar(3);
+		dome.scale.setScalar(Math.abs(-3.33333333333333348));
 		this.add(dome);
 	}
 }
@@ -1885,7 +1905,7 @@ class VortexGeometry extends three_BufferGeometry {
 				let self_y = 0;
 				let self_z = 0;
 				self_y = -hSpacing * vertexRow;
-				let r = 1 / (self_y - 0.3);
+				let r = Math.abs(1 / (self_y - 0.3));
 				self_x1 = Math.cos(angle) * r;
 				self_z = Math.sin(angle) * r;
 				let vi = i * 3;
@@ -2262,12 +2282,13 @@ var Main_renderer = (function($this) {
 }(this));
 var Main_scene = new three_Scene();
 var Main_eventManager = new event_ViewEventManager(Main_canvas);
-var Main_arcBallControl = new control_ArcBallControl({ viewEventManager : Main_eventManager, radius : 4., dragSpeed : 4., zoomSpeed : 1., angleAroundXZ : 0.5});
+var Main_arcBallControl = new control_ArcBallControl({ viewEventManager : Main_eventManager, radius : 0.2, dragSpeed : 4., zoomSpeed : 1., angleAroundY : Math.PI * 0.5});
 var Main_uTime_s = new three_Uniform(0.0);
 var Main_background = new rendering_BackgroundEnvironment();
 var Main_environmentManager = new environment_EnvironmentManager(Main_renderer,Main_scene,"assets/env/paul_lobe_haus_1k.rgbd.png",function(env) {
 });
 var Main_devUI = Main_initDevUI();
+var Main_coin = new Coin();
 var Main_animationFrame_lastTime_ms = -1.0;
 tool_IBLGenerator.LOD_MAX = 8;
 tool_IBLGenerator.SIZE_MAX = Math.pow(2,tool_IBLGenerator.LOD_MAX);
