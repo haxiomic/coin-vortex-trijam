@@ -1,0 +1,24 @@
+{
+  "name": "coin-vortex",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "haxe build.hxml && dead-server --watch=\"*.html,bin/bundle.js,assets\" .",
+    "externs": "dts2hx three three/examples/jsm/loaders/RGBELoader three/examples/jsm/loaders/GLTFLoader three/examples/jsm/objects/Reflector -m"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dat.gui": "^0.7.7",
+    "esbuild": "^0.14.2",
+    "three": "^0.135.0"
+  },
+  "devDependencies": {
+    "dead-server": "^1.0.4",
+    "@types/dat.gui": "^0.7.7",
+    "@types/three": "^0.135.0",
+    "dts2hx": "^0.18.1"
+  }
+}
