@@ -493,8 +493,10 @@ class control_ArcBallControl {
 		this._onDown_angleAroundXZ = 0;
 		this._onDown_angleAroundY = 0;
 		this.orientation = new Vec4Data(0,0,0,1);
+		this.position = new Vec3Data(0.,0.,0.);
 		this.target = new Vec3Data(0.,0.,0.);
 		this.radius = new animation_Spring(1.);
+		this.axialRotation = new animation_Spring(0.);
 		this.angleAroundXZ = new animation_Spring(0.);
 		this.angleAroundY = new animation_Spring(0.);
 		let a = control_ArcBallControl.defaults;
@@ -1607,6 +1609,8 @@ function Main_main() {
 	Main_drag = 0.0203;
 	Main_initialVelocity.x = 0;
 	Main_initialVelocity.y = 1.6794761330346373;
+	Main_control = 1.;
+	Main_devUI.hide();
 	window.document.body.appendChild(Main_canvas);
 	Main_scene.add(Main_background);
 	Main_scene.add(new Vortex());
@@ -1685,22 +1689,80 @@ function Main_main() {
 	ui_DevUI.patchController(c3,function() {
 		return "initialVelocity.y" + " = " + Main_initialVelocity.y + ";";
 	}).name("y");
-	Main_scene.add(new three_AxesHelper());
+	let o4 = { };
+	Object.defineProperty(o4,"control",{ set : function(__value) {
+		Main_control = __value;
+	}, get : function() {
+		return Main_control;
+	}});
+	let c4 = g.add(o4,"control").name("control");
+	let min4 = -2;
+	let max4 = 2;
+	if(min4 != null) {
+		c4 = c4.min(min4);
+	}
+	if(max4 != null) {
+		c4 = c4.max(max4);
+	}
+	ui_DevUI.patchController(c4,function() {
+		return "control" + " = " + Main_control + ";";
+	}).name("control");
+	Main_timer.innerHTML = "hello world";
+	let objectDeclaration = { position : "absolute", zIndex : "100", left : "20px", top : "20px", fontFamily : "sans-serif", fontSize : "30px"};
+	let target = Main_timer.style;
+	target.position = objectDeclaration.position;
+	target.zIndex = objectDeclaration.zIndex;
+	target.left = objectDeclaration.left;
+	target.top = objectDeclaration.top;
+	target.fontFamily = objectDeclaration.fontFamily;
+	target.fontSize = objectDeclaration.fontSize;
+	window.document.body.appendChild(Main_timer);
 	Main_arcBallControl.target.y = 0.;
 	let _this = Main_eventManager;
 	let cb = function(e,onView) {
-		if(e.key == "r") {
-			Main_start();
-		} else {
+		switch(e.key) {
+		case " ":
+			Main_firstPerson = !Main_firstPerson;
+			break;
+		case "r":
+			break;
+		default:
 			$global.console.log("key " + e.key);
 		}
 	};
 	_this.eventHandler.onKeyUpCallbacks.push(cb);
 	let _gthis = _this;
+	let _this1 = Main_eventManager;
+	let cb1 = function(e,_) {
+		switch(e.key) {
+		case "ArrowLeft":
+			Main_leftDown = true;
+			break;
+		case "ArrowRight":
+			Main_rightDown = true;
+			break;
+		}
+	};
+	_this1.eventHandler.onKeyDownCallbacks.push(cb1);
+	let _gthis1 = _this1;
+	let _this2 = Main_eventManager;
+	let cb2 = function(e,_) {
+		switch(e.key) {
+		case "ArrowLeft":
+			Main_leftDown = false;
+			break;
+		case "ArrowRight":
+			Main_rightDown = false;
+			break;
+		}
+	};
+	_this2.eventHandler.onKeyUpCallbacks.push(cb2);
+	let _gthis2 = _this2;
 	Main_animationFrame(window.performance.now());
 	Main_start();
 }
 function Main_start() {
+	Main_aliveTime = 0;
 	let this1 = Main_coin.pos2D;
 	this1.x = Math.abs(1 / (0 - Main_vortexDelta)) - 0.2;
 	this1.y = 0;
@@ -1709,7 +1771,12 @@ function Main_start() {
 	self.x = source.x;
 	self.y = source.y;
 }
+function Main_gameOver() {
+	Main_start();
+}
 function Main_update(t_s,dt_s) {
+	Main_aliveTime += dt_s;
+	Main_timer.innerHTML = Math.round(Main_aliveTime) + " s";
 	let v = Main_coin.pos2D;
 	let r = Math.sqrt(v.x * v.x + v.y * v.y);
 	let v1 = Main_coin.pos2D;
@@ -1724,26 +1791,38 @@ function Main_update(t_s,dt_s) {
 	let b = Main_drag;
 	a2.x += -a3.x * b * dt_s;
 	a2.y += -a3.y * b * dt_s;
-	let a4 = Main_coin.pos2D;
-	let a5 = Main_coin.vel2D;
-	a4.x += a5.x * dt_s;
-	a4.y += a5.y * dt_s;
-	let this1 = Main_coin.pos2D;
-	let l = Math.sqrt(this1.x * this1.x + this1.y * this1.y);
-	let self = Main_coin.pos2D;
-	let this11 = Main_coin.pos2D;
-	let v2 = this11;
-	let lenSq1 = v2.x * this11.x + v2.y * this11.y;
+	let v2 = Main_coin.vel2D;
+	let lenSq1 = v2.x * v2.x + v2.y * v2.y;
 	let denominator1 = lenSq1 == 0.0 ? 1.0 : Math.sqrt(lenSq1);
-	let max = Math.abs(1 / (0 - Main_vortexDelta));
-	let b1 = l < 0 ? 0 : l > max ? max : l;
-	self.x = v2.x / denominator1 * b1;
-	self.y = v2.y / denominator1 * b1;
+	let x = v2.x / denominator1;
+	let c = (Main_leftDown ? -1 : 0) + (Main_rightDown ? 1 : 0);
+	let a4 = Main_coin.vel2D;
+	let b1 = Main_control;
+	a4.x += -(v2.y / denominator1) * b1 * c * dt_s;
+	a4.y += x * b1 * c * dt_s;
+	let a5 = Main_coin.pos2D;
+	let a6 = Main_coin.vel2D;
+	a5.x += a6.x * dt_s;
+	a5.y += a6.y * dt_s;
+	let this1 = Main_coin.pos2D;
+	let R0 = Math.abs(1 / (0 - Main_vortexDelta));
+	if(Math.sqrt(this1.x * this1.x + this1.y * this1.y) >= R0) {
+		let a = Main_coin.vel2D;
+		a.x *= 0.9;
+		a.y *= 0.9;
+		let self = Main_coin.pos2D;
+		let this1 = Main_coin.pos2D;
+		let v = this1;
+		let lenSq = v.x * this1.x + v.y * this1.y;
+		let denominator = lenSq == 0.0 ? 1.0 : Math.sqrt(lenSq);
+		self.x = v.x / denominator * R0;
+		self.y = v.y / denominator * R0;
+	}
 	let y = -Math.abs(1 / r - Main_vortexDelta);
 	let v3 = Main_coin.pos2D;
 	let r1 = Math.sqrt(v3.x * v3.x + v3.y * v3.y);
 	let slope = Math.atan(1 / (r1 * r1));
-	let direction = Math.atan2(Main_coin.vel2D.y,-Main_coin.vel2D.x);
+	let direction = Math.atan2(Main_coin.vel2D.y,-Main_coin.vel2D.x) + 0.01;
 	Main_coin.rotation.set(0,0,0);
 	Main_coin.rotateX(-slope);
 	Main_coin.rotateOnWorldAxis(new three_Vector3(0,1,0),direction);
@@ -1753,12 +1832,15 @@ function Main_update(t_s,dt_s) {
 	let tmp2 = isFinite(y) ? y : 0;
 	let f1 = Main_coin.pos2D.y;
 	tmp.set(tmp1,tmp2,isFinite(f1) ? Main_coin.pos2D.y : 0);
+	if(Main_coin.position.y < -(Main_vortexHeight + Main_vortexDelta)) {
+		Main_gameOver();
+	}
 	let coinCenter = Main_coin.position.clone().add(new three_Vector3(0,0.025,0.));
-	let x = new three_Vector3(0.2,0,0);
-	x.applyQuaternion(Main_coin.quaternion);
+	let x1 = new three_Vector3(0.2,0,0);
+	x1.applyQuaternion(Main_coin.quaternion);
 	let y1 = new three_Vector3(0.0,0.05,0);
 	y1.applyQuaternion(Main_coin.quaternion);
-	let camPos = coinCenter.clone().add(x);
+	let camPos = coinCenter.clone().add(x1);
 	camPos.add(y1);
 	let f2 = camPos.y;
 	let tmp3 = isFinite(f2) ? camPos.y : Main_coin.position.y;
@@ -1772,7 +1854,59 @@ function Main_update(t_s,dt_s) {
 	Main_animator.step(dt_s);
 	Main_camera.position.set(Main_camPosX.value,Main_camPosY.value,Main_camPosZ.value);
 	Main_camera.lookAt(coinCenter);
-	Main_camera.rotateOnWorldAxis(x.normalize(),-slope);
+	Main_camera.rotateOnWorldAxis(x1.normalize(),-slope);
+	if(!Main_firstPerson) {
+		let _this = Main_arcBallControl;
+		let camera = Main_camera;
+		_this.angleAroundY.step(dt_s);
+		_this.angleAroundXZ.step(dt_s);
+		_this.axialRotation.step(dt_s);
+		_this.radius.step(dt_s);
+		_this.position.x = _this.radius.value * Math.sin(_this.angleAroundY.value) * Math.cos(_this.angleAroundXZ.value);
+		_this.position.z = _this.radius.value * Math.cos(_this.angleAroundY.value) * Math.cos(_this.angleAroundXZ.value);
+		_this.position.y = _this.radius.value * Math.sin(_this.angleAroundXZ.value);
+		let this1 = _this.position;
+		let v = this1;
+		let lenSq = v.x * this1.x + v.y * this1.y + v.z * this1.z;
+		let denominator = lenSq == 0.0 ? 1.0 : Math.sqrt(lenSq);
+		let angle = _this.axialRotation.value;
+		let sa = Math.sin(angle * 0.5);
+		let x = v.x / denominator * sa;
+		let y = v.y / denominator * sa;
+		let z = v.z / denominator * sa;
+		let w = Math.cos(angle * 0.5);
+		let angle1 = _this.angleAroundY.value;
+		let sa1 = Math.sin(angle1 * 0.5);
+		let x1 = 0 * sa1;
+		let y1 = 1 * sa1;
+		let z1 = 0 * sa1;
+		let w1 = Math.cos(angle1 * 0.5);
+		let angle2 = -_this.angleAroundXZ.value;
+		let sa2 = Math.sin(angle2 * 0.5);
+		let x2 = 1 * sa2;
+		let y2 = 0 * sa2;
+		let z2 = 0 * sa2;
+		let w2 = Math.cos(angle2 * 0.5);
+		let self = _this.orientation;
+		let x3 = x1 * w2 + y1 * z2 - z1 * y2 + w1 * x2;
+		let y3 = -x1 * z2 + y1 * w2 + z1 * x2 + w1 * y2;
+		let z3 = x1 * y2 - y1 * x2 + z1 * w2 + w1 * z2;
+		let w3 = -x1 * x2 - y1 * y2 - z1 * z2 + w1 * w2;
+		self.x = x * w3 + y * z3 - z * y3 + w * x3;
+		self.y = -x * z3 + y * w3 + z * x3 + w * y3;
+		self.z = x * y3 - y * x3 + z * w3 + w * z3;
+		self.w = -x * x3 - y * y3 - z * z3 + w * w3;
+		let a = _this.position;
+		let b = _this.target;
+		let q = _this.orientation;
+		camera.position.x = a.x + b.x;
+		camera.position.y = a.y + b.y;
+		camera.position.z = a.z + b.z;
+		camera.quaternion.x = q.x;
+		camera.quaternion.y = q.y;
+		camera.quaternion.z = q.z;
+		camera.quaternion.w = q.w;
+	}
 }
 function Main_animationFrame(time_ms) {
 	let time_s = time_ms / 1000;
@@ -2174,7 +2308,7 @@ class VortexGeometry extends three_BufferGeometry {
 		super();
 		let indexCount = widthSegments * heightSegments * 2 * 3;
 		let vertexCount = (widthSegments + 1) * (heightSegments + 1);
-		let hSpacing = 4. / heightSegments;
+		let hSpacing = Main_vortexHeight / heightSegments;
 		let vertices = new Float32Array(3 * vertexCount);
 		let uvs = new Float32Array(2 * vertexCount);
 		let _g = 0;
@@ -2518,7 +2652,6 @@ class haxe_iterators_ArrayIterator {
 	}
 }
 haxe_iterators_ArrayIterator.__name__ = true;
-var three_AxesHelper = require("three").AxesHelper;
 var three_BufferAttribute = require("three").BufferAttribute;
 var three_Float32BufferAttribute = require("three").Float32BufferAttribute;
 var three_Mapping = require("three");
@@ -2603,7 +2736,7 @@ var Main_renderer = (function($this) {
 }(this));
 var Main_scene = new three_Scene();
 var Main_eventManager = new event_ViewEventManager(Main_canvas);
-var Main_arcBallControl = new control_ArcBallControl({ viewEventManager : Main_eventManager, radius : 0.2, dragSpeed : 4., zoomSpeed : 1., angleAroundY : 0.});
+var Main_arcBallControl = new control_ArcBallControl({ viewEventManager : Main_eventManager, radius : 5., dragSpeed : 4., zoomSpeed : 1., angleAroundY : 0., angleAroundXZ : 0.5});
 var Main_uTime_s = new three_Uniform(0.0);
 var Main_background = new rendering_BackgroundEnvironment();
 var Main_environmentManager = new environment_EnvironmentManager(Main_renderer,Main_scene,"assets/env/paul_lobe_haus_1k.rgbd.png",function(env) {
@@ -2612,8 +2745,15 @@ var Main_devUI = Main_initDevUI();
 var Main_G = 0.;
 var Main_drag = 0.;
 var Main_initialVelocity = new Vec2Data(0,0);
+var Main_control = 0.;
 var Main_coin = new Coin();
+var Main_leftDown = false;
+var Main_rightDown = false;
+var Main_firstPerson = true;
+var Main_timer = window.document.createElement("div");
+var Main_aliveTime = 0.;
 var Main_vortexDelta = 0.3;
+var Main_vortexHeight = 3;
 var Main_animator = new animation_Animator();
 var Main_camPosX = (function($this) {
 	var $r;
